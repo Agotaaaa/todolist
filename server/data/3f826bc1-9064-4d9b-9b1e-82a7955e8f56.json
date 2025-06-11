@@ -1,0 +1,86 @@
+{
+  "id": "3f826bc1-9064-4d9b-9b1e-82a7955e8f56",
+  "title": "New Todo List",
+  "tasks": [
+    {
+      "id": "855b44c5-61db-4b31-91f5-40d42465714e",
+      "text": "adnane",
+      "status": "closed",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-07T18:44:08.266Z",
+      "updatedAt": "2025-06-07T19:15:14.400Z",
+      "deadline": "2025-06-09T00:00:00.000Z",
+      "lastUpdatedBy": "yassir"
+    },
+    {
+      "id": "c214bd17-e657-4d9e-88b7-5234dd32a0ca",
+      "text": "- When there is an error on the modal or tsx file, it should tell what is the error and red mark it. and data should persist so that user does no",
+      "status": "closed",
+      "createdBy": "khalid",
+      "createdAt": "2025-06-07T18:45:50.422Z",
+      "updatedAt": "2025-06-07T19:08:29.703Z",
+      "deadline": "2025-06-12T00:00:00.000Z",
+      "lastUpdatedBy": "adnane"
+    },
+    {
+      "id": "56d2fd73-d1e0-4d20-a120-bc2f5555addc",
+      "text": "ajnaojnaofnaofiao",
+      "status": "open",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-07T18:59:11.790Z",
+      "updatedAt": "2025-06-07T19:14:46.170Z",
+      "lastUpdatedBy": "yassir"
+    },
+    {
+      "id": "986677d9-cfe6-47f0-8637-379182692a58",
+      "text": "iaufaofijapfoa",
+      "status": "new",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-07T19:05:11.283Z",
+      "updatedAt": "2025-06-07T19:15:07.416Z",
+      "lastUpdatedBy": "yassir"
+    },
+    {
+      "id": "26654f2b-6a8d-4e17-8425-c138040ed37e",
+      "text": ",aiz,acio,apij",
+      "status": "new",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-07T19:05:14.152Z",
+      "updatedAt": "2025-06-07T19:08:14.164Z",
+      "deadline": "2025-06-18T00:00:00.000Z",
+      "lastUpdatedBy": "adnane"
+    },
+    {
+      "id": "54b09720-80cc-4231-8e11-8f275750be2b",
+      "text": "noianoijc",
+      "status": "new",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-07T19:05:20.276Z",
+      "updatedAt": "2025-06-07T19:05:20.276Z"
+    },
+    {
+      "id": "737fd48f-6385-4c6c-ac7b-0efbce323281",
+      "text": "jknonecoei",
+      "status": "new",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-07T19:05:22.786Z",
+      "updatedAt": "2025-06-07T19:05:22.786Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "adnane",
+      "joinedAt": "2025-06-07T18:43:51.612Z"
+    },
+    {
+      "username": "khalid",
+      "joinedAt": "2025-06-07T18:44:56.075Z"
+    },
+    {
+      "username": "yassir",
+      "joinedAt": "2025-06-07T19:14:37.832Z"
+    }
+  ],
+  "createdAt": "2025-06-07T18:43:41.359Z",
+  "updatedAt": "2025-06-07T19:15:14.400Z"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "750b3432-ab02-49bc-b0b4-4cdfc1b6391e",
+  "title": "from chrom",
+  "tasks": [
+    {
+      "id": "0cf0e165-0790-4252-9dfb-d209b31f134e",
+      "text": "this task from chrom",
+      "status": "new",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-11T11:28:17.949Z",
+      "updatedAt": "2025-06-11T11:28:17.949Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "adnane",
+      "joinedAt": "2025-06-11T11:23:07.814Z"
+    }
+  ],
+  "createdBy": "user-1749640780939-bfwi41o58",
+  "createdAt": "2025-06-11T11:23:02.868Z",
+  "updatedAt": "2025-06-11T11:43:55.654Z"
+}

@@ -1,0 +1,135 @@
+{
+  "id": "1a6cfb85-ca64-4e87-945a-eb672a45a25a",
+  "title": "New Todo List",
+  "tasks": [
+    {
+      "id": "6dd47a1d-6141-4d4e-8e72-0e91bc620e6e",
+      "text": "test",
+      "status": "closed",
+      "createdBy": "test",
+      "createdAt": "2025-06-08T12:23:20.710Z",
+      "updatedAt": "2025-06-08T12:47:25.886Z",
+      "lastUpdatedBy": "khalid",
+      "deadline": "2025-06-09T00:00:00.000Z"
+    },
+    {
+      "id": "d5bdef8c-d9a8-4ee2-b358-0b2542d36921",
+      "text": "nccb,cnw,cnw,nw",
+      "status": "new",
+      "createdBy": "test",
+      "createdAt": "2025-06-08T12:54:22.903Z",
+      "updatedAt": "2025-06-08T12:54:22.903Z"
+    },
+    {
+      "id": "e00e18e6-17ab-4906-9e40-d9657cc0ae1d",
+      "text": "nlaknclaknnknnc",
+      "status": "new",
+      "createdBy": "test",
+      "createdAt": "2025-06-08T12:54:32.352Z",
+      "updatedAt": "2025-06-08T12:54:32.352Z"
+    },
+    {
+      "id": "e6aed6b3-3964-4a65-bbc8-b93e50a29b03",
+      "text": "kncalnckanleniicna",
+      "status": "open",
+      "createdBy": "test",
+      "createdAt": "2025-06-08T12:54:38.313Z",
+      "updatedAt": "2025-06-09T15:52:23.770Z",
+      "lastUpdatedBy": "zzzza",
+      "deadline": ""
+    },
+    {
+      "id": "488e27d1-3d40-441b-8d08-3d312cb0b550",
+      "text": "aknclnacneioa",
+      "status": "closed",
+      "createdBy": "test",
+      "createdAt": "2025-06-08T12:54:40.252Z",
+      "updatedAt": "2025-06-09T08:57:23.468Z",
+      "deadline": "2025-06-08T00:00:00.000Z",
+      "lastUpdatedBy": "test"
+    },
+    {
+      "id": "1cfe051f-cfe2-4a0d-b91d-2fbeb33eaa35",
+      "text": "hbaiabcma",
+      "status": "closed",
+      "createdBy": "test",
+      "createdAt": "2025-06-09T09:10:11.371Z",
+      "updatedAt": "2025-06-09T09:22:31.351Z",
+      "lastUpdatedBy": "zzzza"
+    },
+    {
+      "id": "2e99787c-996f-442f-90f0-89cefa00319e",
+      "text": "teeeest",
+      "status": "new",
+      "createdBy": "zzzza",
+      "createdAt": "2025-06-09T09:22:05.556Z",
+      "updatedAt": "2025-06-09T09:22:05.556Z"
+    },
+    {
+      "id": "9b4f9874-97e2-46da-a8da-ae15b8c60ee3",
+      "text": "hvcvchvkc",
+      "status": "new",
+      "createdBy": "zzzza",
+      "createdAt": "2025-06-09T15:50:15.021Z",
+      "updatedAt": "2025-06-09T15:50:15.021Z"
+    },
+    {
+      "id": "7fae59c3-1d18-4cbc-9c1a-ca295644cfcf",
+      "text": "mouchine",
+      "status": "new",
+      "createdBy": "zzzza",
+      "createdAt": "2025-06-09T15:50:21.357Z",
+      "updatedAt": "2025-06-09T15:51:57.525Z",
+      "deadline": "",
+      "lastUpdatedBy": "zzzza"
+    },
+    {
+      "id": "18b17032-f3ae-454f-9c26-4c75c1f595e8",
+      "text": "id organisation replace name",
+      "status": "new",
+      "createdBy": "zzzza",
+      "createdAt": "2025-06-09T15:55:38.727Z",
+      "updatedAt": "2025-06-09T15:55:38.727Z"
+    },
+    {
+      "id": "18a1afef-7243-4b86-acf0-1d0c6c82d4ca",
+      "text": "id in update classe",
+      "status": "new",
+      "createdBy": "zzzza",
+      "createdAt": "2025-06-09T15:55:38.727Z",
+      "updatedAt": "2025-06-09T15:55:38.727Z"
+    },
+    {
+      "id": "0391fdc8-e91d-4f4e-a462-72f175f3d464",
+      "text": "img student",
+      "status": "new",
+      "createdBy": "zzzza",
+      "createdAt": "2025-06-09T15:55:38.727Z",
+      "updatedAt": "2025-06-09T15:55:38.727Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "test",
+      "joinedAt": "2025-06-08T12:23:11.197Z"
+    },
+    {
+      "username": "khalid",
+      "joinedAt": "2025-06-08T12:47:18.726Z"
+    },
+    {
+      "username": "adnane",
+      "joinedAt": "2025-06-09T09:06:10.461Z"
+    },
+    {
+      "username": "said",
+      "joinedAt": "2025-06-09T09:09:27.501Z"
+    },
+    {
+      "username": "zzzza",
+      "joinedAt": "2025-06-09T09:13:37.813Z"
+    }
+  ],
+  "createdAt": "2025-06-08T12:23:04.774Z",
+  "updatedAt": "2025-06-09T15:55:38.727Z"
+}
