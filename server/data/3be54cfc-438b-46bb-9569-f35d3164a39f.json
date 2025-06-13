@@ -1,0 +1,50 @@
+{
+  "id": "3be54cfc-438b-46bb-9569-f35d3164a39f",
+  "title": "todo for today",
+  "tasks": [
+    {
+      "id": "3728e613-1b49-4117-a730-b5267ec4025c",
+      "text": "smoke",
+      "status": "new",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-13T10:20:16.457Z",
+      "updatedAt": "2025-06-13T10:20:16.457Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "adnane",
+      "userId": "00f67ed8-44b6-47a0-bdb8-3c9a563e9294",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T10:20:04.361Z"
+    },
+    {
+      "username": "badr",
+      "userId": "guest-1749810034991-pil8kz1q4",
+      "isGuest": true,
+      "joinedAt": "2025-06-13T10:20:34.993Z"
+    },
+    {
+      "username": "badr",
+      "userId": "guest-1749810037919-l0i59t21u",
+      "isGuest": true,
+      "joinedAt": "2025-06-13T10:20:37.919Z"
+    },
+    {
+      "username": "badr",
+      "userId": "67298880-a998-4d2c-93d0-d4c03b048b90",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T10:22:50.167Z"
+    },
+    {
+      "username": "marwan",
+      "userId": "335fee71-a441-45f2-b625-ac6484237651",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T11:04:52.200Z"
+    }
+  ],
+  "createdBy": "00f67ed8-44b6-47a0-bdb8-3c9a563e9294",
+  "createdByUsername": "adnane",
+  "createdAt": "2025-06-13T10:20:03.920Z",
+  "updatedAt": "2025-06-13T11:04:52.200Z"
+}

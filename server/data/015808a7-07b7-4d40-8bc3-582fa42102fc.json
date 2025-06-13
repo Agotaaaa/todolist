@@ -1,0 +1,29 @@
+{
+  "id": "015808a7-07b7-4d40-8bc3-582fa42102fc",
+  "title": "from brave",
+  "tasks": [
+    {
+      "id": "eb7453b7-af65-465b-bb16-e9f78db8bb08",
+      "text": "this task from brave",
+      "status": "new",
+      "createdBy": "from brave",
+      "createdAt": "2025-06-12T08:53:36.165Z",
+      "updatedAt": "2025-06-12T08:53:36.165Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "from brave",
+      "userId": "user-1749641256778-0bzoqo3l9",
+      "joinedAt": "2025-06-12T08:53:09.538Z"
+    },
+    {
+      "username": "adnane",
+      "userId": "user-1749640780939-bfwi41o58",
+      "joinedAt": "2025-06-12T08:53:54.486Z"
+    }
+  ],
+  "createdBy": "user-1749641256778-0bzoqo3l9",
+  "createdAt": "2025-06-12T08:53:01.663Z",
+  "updatedAt": "2025-06-12T08:53:54.486Z"
+}

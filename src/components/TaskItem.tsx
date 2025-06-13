@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -10,31 +10,47 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button,
-  IconButton
+  Button
 } from '@mui/material';
 import {
   Person,
-  CalendarToday,
-  Delete
+  CalendarToday
 } from '@mui/icons-material';
 import { Task, TaskStatus } from '../types';
 
 interface TaskItemProps {
   task: Task;
+  currentUser: string;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onDeadlineChange: (taskId: string, deadline: string) => void;
+  onTaskEdit: (taskId: string, newText: string) => void;
   onDelete: (taskId: string) => void;
+  isCreator: boolean;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
   task,
+  currentUser,
   onStatusChange,
   onDeadlineChange,
-  onDelete
+  onTaskEdit,
+  onDelete,
+  isCreator
 }) => {
   const [deadlineDialogOpen, setDeadlineDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deadline, setDeadline] = useState(task.deadline || '');
+  const [editText, setEditText] = useState(task.text);
+
+  // FIXED: Sync local state with task prop updates
+  useEffect(() => {
+    setEditText(task.text);
+  }, [task.text]);
+
+  // FIXED: Sync deadline state with task prop updates
+  useEffect(() => {
+    setDeadline(task.deadline || '');
+  }, [task.deadline]);
 
   const statusColors = {
     new: 'primary',
@@ -55,11 +71,20 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     setDeadlineDialogOpen(false);
   };
 
+  const handleEditSubmit = () => {
+    if (editText.trim() && editText.trim() !== task.text) {
+      onTaskEdit(task.id, editText.trim());
+    }
+    setEditDialogOpen(false);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
 
   const isOverdue = task.deadline && new Date(task.deadline) < new Date() && task.status !== 'closed';
+  const canEdit = isCreator || task.createdBy === currentUser;
+  const canDelete = isCreator || task.createdBy === currentUser;
 
   return (
     <>
@@ -71,6 +96,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         }}
       >
         <CardContent>
+          {/* Main Task Content */}
           <Box display="flex" justifyContent="space-between" alignItems="flex-start">
             <Box flex={1}>
               <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
@@ -115,7 +141,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               </Box>
             </Box>
             
-            {/* Action chips on the right */}
+            {/* Status Action chips on the right */}
             <Box display="flex" flexWrap="wrap" gap={1} alignItems="center" sx={{ ml: 2 }}>
               {task.status !== 'open' && (
                 <Chip
@@ -144,19 +170,52 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 onClick={() => setDeadlineDialogOpen(true)}
                 sx={{ cursor: 'pointer', color: 'primary.main', minWidth: '32px' }}
               />
-              
-              <IconButton
-                onClick={() => onDelete(task.id)}
-                size="small"
-                sx={{ color: 'error.main' }}
-              >
-                <Delete />
-              </IconButton>
             </Box>
           </Box>
+
+          {/* Bottom Action Buttons - Edit and Delete */}
+          {(canEdit || canDelete) && (
+            <Box 
+              display="flex" 
+              justifyContent="flex-end" 
+              gap={1} 
+              sx={{ mt: 1 }}
+            >
+              {canEdit && (
+                <Chip
+                  label="E"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setEditText(task.text);
+                    setEditDialogOpen(true);
+                  }}
+                  sx={{ cursor: 'pointer', color: 'info.main', borderColor: 'info.main', minWidth: '32px' }}
+                />
+              )}
+              
+              {canDelete && (
+                <Chip
+                  label="×"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => onDelete(task.id)}
+                  sx={{ 
+                    cursor: 'pointer', 
+                    color: 'error.main', 
+                    borderColor: 'error.main',
+                    minWidth: '32px',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}
+                />
+              )}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
+      {/* Deadline Dialog */}
       <Dialog 
         open={deadlineDialogOpen} 
         onClose={() => setDeadlineDialogOpen(false)}
@@ -200,6 +259,56 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             variant="contained" 
             size="large"
             sx={{ backgroundColor: '#424242' }}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog 
+        open={editDialogOpen} 
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit Task</DialogTitle>
+        <DialogContent sx={{ minHeight: '120px', pt: 3 }}>
+          <TextField
+            label="Task Description"
+            fullWidth
+            multiline
+            maxRows={4}
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            sx={{ mt: 1 }}
+            size="medium"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleEditSubmit();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3, gap: 1 }}>
+          <Button 
+            onClick={() => {
+              setEditText(task.text);
+              setEditDialogOpen(false);
+            }} 
+            size="large"
+            sx={{ color: '#424242' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleEditSubmit} 
+            variant="contained" 
+            size="large"
+            sx={{ backgroundColor: '#424242' }}
+            disabled={!editText.trim() || editText.trim() === task.text}
           >
             Save
           </Button>

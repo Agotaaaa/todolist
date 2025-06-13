@@ -12,18 +12,63 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
-  Divider,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Tabs,
+  Tab,
+  Stack,
+  Snackbar
 } from '@mui/material';
-import { Share, ArrowBack, Add, Edit, Save, Cancel, Home } from '@mui/icons-material';
+import { 
+  Share, 
+  ArrowBack, 
+  Add, 
+  Edit, 
+  Save, 
+  Cancel, 
+  Home, 
+  BookmarkBorder, 
+  Bookmark,
+  Login,
+  PersonAdd
+} from '@mui/icons-material';
 import { TodoList as TodoListType, Task, TaskStatus } from '../types';
 import { api } from '../services/api';
 import { UserModal } from './UserModal';
 import { TaskItem } from './TaskItem';
+import { useNavigate } from "react-router-dom";
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`auth-tabpanel-${index}`}
+      aria-labelledby={`auth-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 const TaskInput: React.FC<{ onAddTasks: (tasks: string[]) => void; disabled?: boolean; onSubmitStart: () => void; onSubmitEnd: () => void }> = ({ onAddTasks, disabled, onSubmitStart, onSubmitEnd }) => {
   const [inputValue, setInputValue] = useState('');
-
+   
   const handleSubmit = async () => {
     if (!inputValue.trim()) return;
     
@@ -105,6 +150,7 @@ const TaskInput: React.FC<{ onAddTasks: (tasks: string[]) => void; disabled?: bo
 export const TodoList: React.FC = () => {
   const [todoList, setTodoList] = useState<TodoListType | null>(null);
   const [currentUser, setCurrentUser] = useState<string>('');
+  const [authenticatedUser, setAuthenticatedUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [showUserModal, setShowUserModal] = useState(false);
@@ -112,62 +158,267 @@ export const TodoList: React.FC = () => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [hasNavigationHistory, setHasNavigationHistory] = useState(false);
-  const [isPublicAccess, setIsPublicAccess] = useState(false);
-
+  const [isSharedList, setIsSharedList] = useState(false);
+  const [canSaveToMyLists, setCanSaveToMyLists] = useState(false);
+  const [savingToMyLists, setSavingToMyLists] = useState(false);
+  const [isListSaved, setIsListSaved] = useState(false);
+  
+  // Authentication dialog state
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authTab, setAuthTab] = useState(0);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ username: '', password: '', confirmPassword: '' });
+  
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+  
+  const navigate = useNavigate();
+  
   useEffect(() => {
     initializeTodoList();
-    // Check if user came from within the app or from external link
     setHasNavigationHistory(window.history.length > 1);
   }, []);
 
- const initializeTodoList = async () => {
-  try {
-    setLoading(true);
-    const urlParams = new URLSearchParams(window.location.search);
-    const todoId = urlParams.get('id');
-    
-    if (!todoId) {
-      // Redirect to overview if no ID is provided
-      window.location.href = '/';
-      return;
-    }
-    
-    const savedUser = localStorage.getItem(`todo-user-${todoId}`);
-    
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const initializeTodoList = async () => {
     try {
-      // Try to load the todo list (API client handles public vs authenticated access)
-      const data = await api.getTodoList(todoId);
-      setTodoList(data);
-      setEditTitle(data.title);
+      setLoading(true);
+      const urlParams = new URLSearchParams(window.location.search);
+      const todoId = urlParams.get('id');
       
-      if (savedUser) {
-        setCurrentUser(savedUser);
-        setIsPublicAccess(false);
-        // Silently add user to the list if they're returning
-        try {
-          await api.addUser(data.id, savedUser);
-        } catch (err) {
-          // Ignore errors here - user might already be added
+      if (!todoId) {
+        window.location.href = '/';
+        return;
+      }
+      
+      const user = api.getCurrentUser();
+      setAuthenticatedUser(user);
+      
+      const savedUser = localStorage.getItem(`todo-user-${todoId}`);
+      
+      try {
+        const data = await api.getTodoList(todoId);
+        setTodoList(data);
+        setEditTitle(data.title);
+        
+        let currentUserName = '';
+        let isShared = false;
+        
+        if (user) {
+          currentUserName = user.username;
+          isShared = data.createdBy !== user.id;
+          
+          if (!data.users?.some(u => u.userId === user.id)) {
+            try {
+              const updatedList = await api.addUser(data.id, user.username);
+              setTodoList(updatedList);
+              setCurrentUser(currentUserName);
+            } catch (err) {
+              console.warn('Failed to auto-join list:', err);
+              setCurrentUser(currentUserName);
+            }
+          } else {
+            setCurrentUser(currentUserName);
+          }
+          
+          setShowUserModal(false);
+          
+        } else if (savedUser) {
+          currentUserName = savedUser;
+          isShared = data.createdBy !== savedUser;
+          setCurrentUser(currentUserName);
+          
+          try {
+            await api.addUser(data.id, savedUser);
+          } catch (err) {
+            // Ignore errors - user might already be added
+          }
+        } else {
+          // Show authentication dialog instead of user modal
+          setAuthDialogOpen(true);
         }
-      } else {
-        setIsPublicAccess(true);
-        setShowUserModal(true);
+        
+        setIsSharedList(isShared);
+        
+        if (user && isShared) {
+          const isAlreadyMember = data.users?.some((u: any) => u.userId === user.id);
+          setCanSaveToMyLists(!isAlreadyMember);
+          setIsListSaved(isAlreadyMember);
+        }
+        
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setError('Todo list not found');
+        } else if (err.response?.status === 400) {
+          setError('Unable to access todo list');
+        } else {
+          setError('Failed to load todo list');
+        }
       }
     } catch (err) {
-      if (err.response?.status === 404) {
-        setError('Todo list not found');
-      } else if (err.response?.status === 400) {
-        setError('Unable to access todo list');
-      } else {
-        setError('Failed to load todo list');
-      }
+      setError('Failed to load todo list');
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError('Failed to load todo list');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!loginForm.username || !loginForm.password) {
+      showSnackbar('Please fill in all fields', 'error');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const user = await api.login(loginForm.username, loginForm.password);
+      setAuthenticatedUser(user);
+      setCurrentUser(user.username);
+      setAuthDialogOpen(false);
+      setLoginForm({ username: '', password: '' });
+      showSnackbar(`Welcome back, ${user.username}!`, 'success');
+      
+      // Re-initialize the todo list with the authenticated user
+      await initializeTodoList();
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        showSnackbar('Invalid username or password', 'error');
+      } else if (error.response?.data?.error) {
+        showSnackbar(error.response.data.error, 'error');
+      } else {
+        showSnackbar('Login failed. Please try again.', 'error');
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!registerForm.username || !registerForm.password || !registerForm.confirmPassword) {
+      showSnackbar('Please fill in all fields', 'error');
+      return;
+    }
+
+    if (registerForm.password !== registerForm.confirmPassword) {
+      showSnackbar('Passwords do not match', 'error');
+      return;
+    }
+
+    if (registerForm.username.length < 3) {
+      showSnackbar('Username must be at least 3 characters long', 'error');
+      return;
+    }
+
+    if (registerForm.password.length < 6) {
+      showSnackbar('Password must be at least 6 characters long', 'error');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const user = await api.register(registerForm.username, registerForm.password);
+      setAuthenticatedUser(user);
+      setCurrentUser(user.username);
+      setAuthDialogOpen(false);
+      setRegisterForm({ username: '', password: '', confirmPassword: '' });
+      showSnackbar(`Welcome, ${user.username}!`, 'success');
+      
+      // Re-initialize the todo list with the authenticated user
+      await initializeTodoList();
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        showSnackbar('Username already exists', 'error');
+      } else if (error.response?.data?.error) {
+        showSnackbar(error.response.data.error, 'error');
+      } else {
+        showSnackbar('Registration failed. Please try again.', 'error');
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleAuthTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setAuthTab(newValue);
+  };
+
+  // Add a function to handle guest access
+  const handleGuestAccess = () => {
+    setAuthDialogOpen(false);
+    setShowUserModal(true);
+  };
+
+  const handleSaveToMyLists = async () => {
+    if (!todoList) return;
+    
+    setSavingToMyLists(true);
+    try {
+      if (authenticatedUser) {
+        const API_BASE_URL = 'http://localhost:3001';
+        const response = await fetch(`${API_BASE_URL}/api/todos/${todoList.id}/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': authenticatedUser.id,
+          },
+          body: JSON.stringify({
+            username: authenticatedUser.username
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to save todo list');
+        }
+      } else {
+        const savedListsKey = `my-saved-lists-${currentUser}`;
+        const existingSavedLists = JSON.parse(localStorage.getItem(savedListsKey) || '[]');
+                
+        if (!existingSavedLists.some(list => list.id === todoList.id)) {
+          existingSavedLists.push({
+            id: todoList.id,
+            title: todoList.title,
+            createdBy: todoList.createdBy,
+            savedAt: new Date().toISOString()
+          });
+          localStorage.setItem(savedListsKey, JSON.stringify(existingSavedLists));
+        }
+      }
+      
+      setCanSaveToMyLists(false);
+      setIsListSaved(true);
+      setError('Todo list saved to your lists!');
+      
+      setTimeout(() => {
+        setError('');
+      }, 2000);
+      
+      await initializeTodoList();
+    } catch (error: any) {
+      console.error('Error saving todo list:', error);
+      setError(error.message || 'Failed to save todo list');
+    } finally {
+      setSavingToMyLists(false);
+    }
+  };
 
   const handleUserSubmit = async (username: string) => {
     try {
@@ -178,6 +429,12 @@ export const TodoList: React.FC = () => {
       setCurrentUser(username);
       localStorage.setItem(`todo-user-${todoList.id}`, username);
       setShowUserModal(false);
+      
+      const isShared = updatedList.createdBy !== username;
+      setIsSharedList(isShared);
+      if (isShared && !authenticatedUser) {
+        setCanSaveToMyLists(true);
+      }
     } catch (err) {
       setError('Failed to add user');
     }
@@ -222,6 +479,20 @@ export const TodoList: React.FC = () => {
     }
   };
 
+  const handleTaskEdit = async (taskId: string, newText: string) => {
+    try {
+      if (!todoList || !currentUser) return;
+      
+      const updatedList = await api.updateTask(todoList.id, taskId, {
+        text: newText,
+        username: currentUser
+      });
+      setTodoList(updatedList);
+    } catch (err) {
+      setError('Failed to update task');
+    }
+  };
+
   const handleDeleteTask = async (taskId: string) => {
     try {
       if (!todoList) return;
@@ -236,17 +507,25 @@ export const TodoList: React.FC = () => {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      // Show success message
       setError('');
-      // You could add a toast notification here to confirm the copy action
+      
+      const originalError = error;
+      setError('Link copied to clipboard! Share it with others to collaborate.');
+      setTimeout(() => {
+        setError(originalError);
+      }, 3000);
     } catch (err) {
-      // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement('textarea');
       textArea.value = window.location.href;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
+      
+      setError('Link copied to clipboard! Share it with others to collaborate.');
+      setTimeout(() => {
+        setError('');
+      }, 3000);
     }
   };
 
@@ -257,7 +536,7 @@ export const TodoList: React.FC = () => {
       const updatedList = await api.updateTodoList(todoList.id, editTitle.trim());
       setTodoList(updatedList);
       setEditingTitle(false);
-    } catch (err) {
+    } catch (err: any) {
       if (err.response?.status === 403) {
         setError('Only the list creator can edit the title');
       } else {
@@ -275,15 +554,7 @@ export const TodoList: React.FC = () => {
   };
 
   const handleNavigation = () => {
-    if (hasNavigationHistory) {
-      window.history.back();
-    } else {
-      window.location.href = '/';
-    }
-  };
-
-  const goToOverview = () => {
-    window.location.href = '/';
+    navigate("/");
   };
 
   if (loading) {
@@ -311,8 +582,9 @@ export const TodoList: React.FC = () => {
   }
 
   const totalTasks = todoList.tasks.length;
-  const currentUserId = api.getCurrentUserId();
-  const isCreator = todoList.createdBy === currentUserId;
+  const isCreator = authenticatedUser ? 
+    todoList.createdBy === authenticatedUser.id : 
+    todoList.createdBy === currentUser;
 
   return (
     <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
@@ -400,10 +672,49 @@ export const TodoList: React.FC = () => {
                   <Edit fontSize="small" />
                 </IconButton>
               )}
+              {!isCreator && (
+                <Chip
+                  label="Shared"
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  sx={{ ml: 1 }}
+                />
+              )}
             </Box>
           )}
           
           <Box display="flex" alignItems="center" gap={1}>
+            {canSaveToMyLists && currentUser && (
+              <Button
+                onClick={handleSaveToMyLists}
+                disabled={savingToMyLists}
+                startIcon={savingToMyLists ? <CircularProgress size={16} /> : <BookmarkBorder />}
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  },
+                  mr: 1
+                }}
+                size="small"
+              >
+                {savingToMyLists ? 'Saving...' : 'Save to My Lists'}
+              </Button>
+            )}
+            
+            {isListSaved && isSharedList && (
+              <Chip
+                icon={<Bookmark />}
+                label="Saved"
+                size="small"
+                color="success"
+                variant="outlined"
+                sx={{ mr: 1 }}
+              />
+            )}
+            
             {todoList.users.map(user => (
               <Chip
                 key={user.username}
@@ -433,60 +744,202 @@ export const TodoList: React.FC = () => {
         }}
       >
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          <Alert 
+            severity={error.includes('copied') || error.includes('saved') ? 'success' : 'error'} 
+            sx={{ mb: 3 }} 
+            onClose={() => setError('')}
+          >
             {error}
           </Alert>
         )}
 
-
-                 {!currentUser ? (
-            <Box textAlign="center" py={6}>
-              <Typography variant="h6" color="text.secondary">
-                Welcome to {todoList.title}
+        {!currentUser ? (
+          <Box textAlign="center" py={6}>
+            <Typography variant="h6" color="text.secondary">
+              Welcome to {todoList.title}
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 1 }}>
+              Please log in or create an account to start contributing to this todo list.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              You can also continue as a guest user if you prefer.
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            {totalTasks === 0 ? (
+              <Typography variant="body1" color="text.secondary" textAlign="center" mt={4}>
+                No tasks yet. Add some tasks below to get started!
               </Typography>
-              <Typography variant="body1" sx={{ mt: 1 }}>
-                Please enter your username to start contributing.
-              </Typography>
-            </Box>
-          ) : (
-            <>
-              {totalTasks === 0 ? (
-                <Typography variant="body1" color="text.secondary" textAlign="center" mt={4}>
-                  No tasks yet. Add some tasks below to get started!
-                </Typography>
-              ) : (
-                todoList.tasks.map((task: Task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    currentUser={currentUser}
-                    onStatusChange={handleStatusChange}
-                    onDeadlineChange={handleDeadlineChange}
-                    onDelete={handleDeleteTask}
-                    isCreator={isCreator}
-                  />
-                ))
-              )}
-            </>
-          )}
-        </Container>
-
-        {currentUser && (
-          <TaskInput
-            onAddTasks={handleAddTasks}
-            disabled={isSubmitting}
-            onSubmitStart={handleSubmitStart}
-            onSubmitEnd={handleSubmitEnd}
-          />
+            ) : (
+              todoList.tasks.map((task: Task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  currentUser={currentUser}
+                  onStatusChange={handleStatusChange}
+                  onDeadlineChange={handleDeadlineChange}
+                  onTaskEdit={handleTaskEdit}
+                  onDelete={handleDeleteTask}
+                  isCreator={isCreator}
+                />
+              ))
+            )}
+          </>
         )}
+      </Container>
 
-        {showUserModal && (
-          <UserModal
-            open={showUserModal}
-            onClose={() => setShowUserModal(false)}
-            onSubmit={handleUserSubmit}
-          />
-        )}
-      </Box>
-    );
+      {currentUser && (
+        <TaskInput
+          onAddTasks={handleAddTasks}
+          disabled={isSubmitting}
+          onSubmitStart={handleSubmitStart}
+          onSubmitEnd={handleSubmitEnd}
+        />
+      )}
+
+      {/* Authentication Dialog */}
+      <Dialog
+        open={authDialogOpen}
+        maxWidth="sm"
+        fullWidth
+        disableEscapeKeyDown
+        PaperProps={{
+          sx: { borderRadius: 2 }
+        }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Typography variant="h5" component="div" textAlign="center">
+            Join Todo List: {todoList?.title}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+            <Tabs value={authTab} onChange={handleAuthTabChange} centered>
+              <Tab label="Login" icon={<Login />} />
+              <Tab label="Register" icon={<PersonAdd />} />
+            </Tabs>
+          </Box>
+
+          <TabPanel value={authTab} index={0}>
+            <form onSubmit={handleLogin}>
+              <Stack spacing={3}>
+                <TextField
+                  label="Username"
+                  value={loginForm.username}
+                  onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+                  fullWidth
+                  autoFocus
+                  disabled={authLoading}
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                  fullWidth
+                  disabled={authLoading}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={authLoading}
+                  startIcon={authLoading ? <CircularProgress size={20} /> : <Login />}
+                  sx={{ mt: 2 }}
+                >
+                  {authLoading ? 'Logging in...' : 'Login'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={handleGuestAccess}
+                  disabled={authLoading}
+                  sx={{ mt: 1 }}
+                >
+                  Continue as Guest
+                </Button>
+              </Stack>
+            </form>
+          </TabPanel>
+
+          <TabPanel value={authTab} index={1}>
+            <form onSubmit={handleRegister}>
+              <Stack spacing={3}>
+                <TextField
+                  label="Username"
+                  value={registerForm.username}
+                  onChange={(e) => setRegisterForm(prev => ({ ...prev, username: e.target.value }))}
+                  fullWidth
+                  autoFocus
+                  disabled={authLoading}
+                  helperText="At least 3 characters"
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm(prev => ({ ...prev, password: e.target.value }))}
+                  fullWidth
+                  disabled={authLoading}
+                  helperText="At least 6 characters"
+                />
+                <TextField
+                  label="Confirm Password"
+                  type="password"
+                  value={registerForm.confirmPassword}
+                  onChange={(e) => setRegisterForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  fullWidth
+                  disabled={authLoading}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={authLoading}
+                  startIcon={authLoading ? <CircularProgress size={20} /> : <PersonAdd />}
+                  sx={{ mt: 2 }}
+                >
+                  {authLoading ? 'Creating Account...' : 'Register'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={handleGuestAccess}
+                  disabled={authLoading}
+                  sx={{ mt: 1 }}
+                >
+                  Continue as Guest
+                </Button>
+              </Stack>
+            </form>
+          </TabPanel>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Modal for Guest Access */}
+      {showUserModal && !authenticatedUser && (
+        <UserModal
+          open={showUserModal}
+          onClose={() => setShowUserModal(false)}
+          onSubmit={handleUserSubmit}
+        />
+      )}
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
 };

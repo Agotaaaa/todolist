@@ -3,83 +3,144 @@ import { TodoList, TodoListSummary } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
-// Generate or get user ID from localStorage
-const getUserId = (): string => {
-  let userId = localStorage.getItem('todo-user-id');
-  if (!userId || userId === 'undefined' || userId === 'null') {
-    userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('todo-user-id', userId);
-  }
-  return userId;
+// User management
+const getUserData = () => {
+  const userData = localStorage.getItem('todo-user-data');
+  return userData ? JSON.parse(userData) : null;
+};
+
+const setUserData = (userData) => {
+  localStorage.setItem('todo-user-data', JSON.stringify(userData));
+};
+
+const clearUserData = () => {
+  localStorage.removeItem('todo-user-data');
 };
 
 // Create axios instance with user ID header
-const createApiClient = (includeUserId: boolean = true, forceUserId?: string) => {
+const createApiClient = (includeAuth = true) => {
   const config = {
     baseURL: API_BASE_URL,
     headers: {}
   };
   
-  if (includeUserId) {
-    const userId = forceUserId || getUserId();
-    // Only add the header if we have a valid user ID
-    if (userId && userId !== 'undefined' && userId !== 'null') {
-      config.headers['x-user-id'] = userId;
+  if (includeAuth) {
+    const userData = getUserData();
+    if (userData && userData.id) {
+      config.headers['x-user-id'] = userData.id;
     }
   }
   
   return axios.create(config);
 };
 
-// Wrapper function to handle API calls with automatic user ID generation
-const handleApiCall = async <T>(apiCall: () => Promise<T>, retryWithNewUserId = false): Promise<T> => {
-  try {
-    return await apiCall();
-  } catch (error) {
-    // If we get a "User ID required" error, try generating a new user ID
-    if (error.response?.status === 400 && 
-        error.response?.data?.error === 'User ID required' && 
-        retryWithNewUserId) {
-      
-      // Clear the current user ID and generate a new one
-      localStorage.removeItem('todo-user-id');
-      const newUserId = getUserId();
-      
-      // Retry the API call with the new user ID
-      return await apiCall();
-    }
-    throw error;
-  }
-};
-
 export const api = {
-  // Get current user ID
-  getCurrentUserId(): string {
-    return getUserId();
+  // Authentication methods
+  async register(username, password) {
+    try {
+      const client = createApiClient(false);
+      const response = await client.post('/auth/register', {
+        username,
+        password
+      });
+      
+      // Store user data
+      setUserData(response.data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
-  
-  // Get all todo lists for current user
-  async getAllTodoLists(): Promise<TodoListSummary[]> {
-    return handleApiCall(async () => {
+
+  async login(username, password) {
+    try {
+      const client = createApiClient(false);
+      const response = await client.post('/auth/login', {
+        username,
+        password
+      });
+      
+      // Store user data
+      setUserData(response.data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  logout() {
+    clearUserData();
+  },
+
+  getCurrentUser() {
+    return getUserData();
+  },
+
+  isAuthenticated() {
+    const userData = getUserData();
+    return !!(userData && userData.id);
+  },
+
+  // Todo list methods
+  async getAllTodoLists() {
+    try {
       const client = createApiClient();
       const response = await client.get('/todos');
-      return response.data;
-    }, true);
+      return response.data; // Now returns { created: [...], shared: [...] }
+    } catch (error) {
+      // If authentication fails, redirect to login
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
   },
-  
-  // Create new todo list
-  async createTodoList(title: string): Promise<TodoList> {
-    return handleApiCall(async () => {
+
+  async markTodoAsAccessed(todoId, username = null) {
+    try {
+      const client = createApiClient();
+      const response = await client.post(`/todos/${todoId}/access`, {
+        username
+      });
+      return response.data;
+    } catch (error) {
+      // For guest users, try without authentication
+      if (error.response?.status === 401 && username) {
+        try {
+          const publicClient = axios.create({
+            baseURL: API_BASE_URL,
+            headers: {}
+          });
+          const response = await publicClient.post(`/todos/${todoId}/access`, {
+            username
+          });
+          return response.data;
+        } catch (publicError) {
+          throw publicError;
+        }
+      }
+      throw error;
+    }
+  },
+
+  async createTodoList(title) {
+    try {
       const client = createApiClient();
       const response = await client.post('/todos', { title });
       return response.data;
-    }, true);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
   },
-  
-  // Get specific todo list - FIXED to always try public access first
-  async getTodoList(id: string): Promise<TodoList> {
+
+  async getTodoList(id) {
     try {
-      // Always try public access first (no user ID header)
+      // Try public access first (for sharing)
       const publicClient = axios.create({
         baseURL: API_BASE_URL,
         headers: {}
@@ -88,111 +149,149 @@ export const api = {
       const response = await publicClient.get(`/todos/${id}`);
       return response.data;
     } catch (error) {
-      // If public access fails with 403, try with user ID
+      // If public access fails, try with authentication
       if (error.response?.status === 403) {
-        return handleApiCall(async () => {
-          const client = createApiClient(true);
+        try {
+          const client = createApiClient();
           const response = await client.get(`/todos/${id}`);
           return response.data;
-        }, true);
+        } catch (authError) {
+          if (authError.response?.status === 401) {
+            clearUserData();
+            window.location.href = '/login';
+          }
+          throw authError;
+        }
       }
       throw error;
     }
   },
-  
-  // Update todo list title
-  async updateTodoList(id: string, title: string): Promise<TodoList> {
-    return handleApiCall(async () => {
+
+  async joinTodoList(todoId) {
+    try {
+      const client = createApiClient();
+      const response = await client.post(`/todos/${todoId}/join`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
+  },
+
+  async updateTodoList(id, title) {
+    try {
       const client = createApiClient();
       const response = await client.put(`/todos/${id}`, { title });
       return response.data;
-    }, true);
-  },
-  
-  // Delete entire todo list
-  async deleteTodoList(id: string): Promise<void> {
-    return handleApiCall(async () => {
-      const client = createApiClient();
-      await client.delete(`/todos/${id}`);
-    }, true);
-  },
-  
-  // Add user to todo list - FIXED to handle no user ID properly
-  async addUser(todoId: string, username: string): Promise<TodoList> {
-    try {
-      // Check if we have a valid stored user ID
-      let userId = localStorage.getItem('todo-user-id');
-      
-      let client;
-      if (userId && userId !== 'undefined' && userId !== 'null') {
-        // Use existing user ID
-        client = createApiClient(true);
-      } else {
-        // No user ID - create client without user ID header
-        client = axios.create({
-          baseURL: API_BASE_URL,
-          headers: {}
-        });
-      }
-      
-      const response = await client.post(`/todos/${todoId}/users`, {
-        username
-      });
-      
-      // If server generated a new user ID, store it
-      if (response.data.generatedUserId) {
-        localStorage.setItem('todo-user-id', response.data.generatedUserId);
-      }
-      
-      return response.data;
     } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
       throw error;
     }
   },
-  
-  // Add tasks to todo list
-  async addTasks(todoId: string, tasks: string[], username: string): Promise<TodoList> {
-    return handleApiCall(async () => {
+
+  async deleteTodoList(id) {
+    try {
+      const client = createApiClient();
+      await client.delete(`/todos/${id}`);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
+  },
+
+  async addUser(todoId, username) {
+    try {
+      const client = createApiClient();
+      const response = await client.post(`/todos/${todoId}/users`, {
+        username
+      });
+      return response.data;
+    } catch (error) {
+      // For guest users, try without authentication
+      if (error.response?.status === 401) {
+        try {
+          const publicClient = axios.create({
+            baseURL: API_BASE_URL,
+            headers: {}
+          });
+          const response = await publicClient.post(`/todos/${todoId}/users`, {
+            username
+          });
+          return response.data;
+        } catch (publicError) {
+          throw publicError;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // FIXED: getTodoListUsers method - now consistent with other methods
+  async getTodoListUsers(todoListId) {
+    try {
+      const client = createApiClient();
+      const response = await client.get(`/todos/${todoListId}/users`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
+  },
+
+  async addTasks(todoId, tasks, username) {
+    try {
       const client = createApiClient();
       const response = await client.post(`/todos/${todoId}/tasks`, {
         tasks,
         username
       });
       return response.data;
-    }, true);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
   },
-  
-  // Update task status/details
-  async updateTask(todoId: string, taskId: string, updates: {
-    status?: 'new' | 'open' | 'closed';
-    username?: string;
-    deadline?: string;
-  }): Promise<TodoList> {
-    return handleApiCall(async () => {
+
+  async updateTask(todoId, taskId, updates) {
+    try {
       const client = createApiClient();
       const response = await client.put(`/todos/${todoId}/tasks/${taskId}`, updates);
       return response.data;
-    }, true);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
   },
-  
-  // Delete individual task
-  async deleteTask(todoId: string, taskId: string): Promise<TodoList> {
-    return handleApiCall(async () => {
+
+  async deleteTask(todoId, taskId) {
+    try {
       const client = createApiClient();
       const response = await client.delete(`/todos/${todoId}/tasks/${taskId}`);
       return response.data;
-    }, true);
-  },
-  
-  // Utility function to reset user ID (useful for debugging)
-  resetUserId(): string {
-    localStorage.removeItem('todo-user-id');
-    return getUserId();
-  },
-  
-  // Check if user has valid stored credentials
-  hasValidUserId(): boolean {
-    const userId = localStorage.getItem('todo-user-id');
-    return !!(userId && userId !== 'undefined' && userId !== 'null');
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearUserData();
+        window.location.href = '/login';
+      }
+      throw error;
+    }
   }
 };

@@ -1,0 +1,26 @@
+{
+  "id": "bf5242e5-b1e2-44ce-812a-8db9d68849b3",
+  "title": "Untitled List",
+  "tasks": [
+    {
+      "id": "c471344b-dd63-473b-8837-c9576e1edc87",
+      "text": "icbzeuiczecj",
+      "status": "new",
+      "createdBy": "riyad",
+      "createdAt": "2025-06-13T08:58:36.583Z",
+      "updatedAt": "2025-06-13T08:58:36.583Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "riyad",
+      "userId": "6f96949e-9981-443e-9be9-8e1f2a0daf96",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T08:58:32.290Z"
+    }
+  ],
+  "createdBy": "6f96949e-9981-443e-9be9-8e1f2a0daf96",
+  "createdByUsername": "riyad",
+  "createdAt": "2025-06-13T08:58:32.022Z",
+  "updatedAt": "2025-06-13T08:58:36.583Z"
+}

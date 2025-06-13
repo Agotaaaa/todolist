@@ -1,0 +1,71 @@
+{
+  "id": "5acdd200-9ba4-4cba-b09f-94eef45ed211",
+  "title": "scolario",
+  "tasks": [
+    {
+      "id": "26bde5a7-4004-437e-88a1-ea2cdeb1c866",
+      "text": "fix the navbar",
+      "status": "open",
+      "createdBy": "ali",
+      "createdAt": "2025-06-13T09:09:07.670Z",
+      "updatedAt": "2025-06-13T09:09:18.736Z",
+      "lastUpdatedBy": "adnane"
+    },
+    {
+      "id": "cf1e3158-ad9f-4f0c-9f84-061516c5046f",
+      "text": "fix the side bar",
+      "status": "new",
+      "createdBy": "adnane",
+      "createdAt": "2025-06-13T10:17:05.602Z",
+      "updatedAt": "2025-06-13T10:17:05.602Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "adnane",
+      "userId": "00f67ed8-44b6-47a0-bdb8-3c9a563e9294",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T08:52:39.577Z"
+    },
+    {
+      "username": "riyad",
+      "userId": "guest-1749805039626-jdh5thuku",
+      "isGuest": true,
+      "joinedAt": "2025-06-13T08:57:19.626Z"
+    },
+    {
+      "username": "riyad",
+      "userId": "guest-1749805043728-gw6nr04rb",
+      "isGuest": true,
+      "joinedAt": "2025-06-13T08:57:23.728Z"
+    },
+    {
+      "username": "ali",
+      "userId": "fe388d02-4a69-4223-9089-2ebfa4c635ef",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T09:08:46.843Z"
+    },
+    {
+      "username": "riyad",
+      "userId": "6f96949e-9981-443e-9be9-8e1f2a0daf96",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T10:11:00.872Z"
+    },
+    {
+      "username": "badr",
+      "userId": "67298880-a998-4d2c-93d0-d4c03b048b90",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T10:19:35.730Z"
+    },
+    {
+      "username": "marwan",
+      "userId": "335fee71-a441-45f2-b625-ac6484237651",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T11:05:22.108Z"
+    }
+  ],
+  "createdBy": "00f67ed8-44b6-47a0-bdb8-3c9a563e9294",
+  "createdByUsername": "adnane",
+  "createdAt": "2025-06-13T08:52:37.008Z",
+  "updatedAt": "2025-06-13T11:05:22.108Z"
+}

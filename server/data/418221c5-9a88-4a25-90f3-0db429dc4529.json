@@ -1,0 +1,17 @@
+{
+  "id": "418221c5-9a88-4a25-90f3-0db429dc4529",
+  "title": "todo",
+  "tasks": [],
+  "users": [
+    {
+      "username": "marwan",
+      "userId": "335fee71-a441-45f2-b625-ac6484237651",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T11:06:32.787Z"
+    }
+  ],
+  "createdBy": "335fee71-a441-45f2-b625-ac6484237651",
+  "createdByUsername": "marwan",
+  "createdAt": "2025-06-13T11:06:31.911Z",
+  "updatedAt": "2025-06-13T11:06:38.589Z"
+}

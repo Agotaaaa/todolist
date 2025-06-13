@@ -1,0 +1,26 @@
+{
+  "id": "86706fe8-3428-4807-b05d-16bc8668560d",
+  "title": "test of new user",
+  "tasks": [
+    {
+      "id": "2ff09cd6-38e7-48f9-9d7b-5beab5c1e4e6",
+      "text": "cqjcnls",
+      "status": "new",
+      "createdBy": "badr",
+      "createdAt": "2025-06-13T11:04:18.003Z",
+      "updatedAt": "2025-06-13T11:04:18.003Z"
+    }
+  ],
+  "users": [
+    {
+      "username": "badr",
+      "userId": "67298880-a998-4d2c-93d0-d4c03b048b90",
+      "isGuest": false,
+      "joinedAt": "2025-06-13T10:19:45.108Z"
+    }
+  ],
+  "createdBy": "67298880-a998-4d2c-93d0-d4c03b048b90",
+  "createdByUsername": "badr",
+  "createdAt": "2025-06-13T10:19:44.676Z",
+  "updatedAt": "2025-06-13T11:04:18.003Z"
+}

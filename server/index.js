@@ -3,6 +3,7 @@ import cors from 'cors';
 import fs from 'fs/promises';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcrypt';
 
 const app = express();
 const PORT = 3001;
@@ -11,12 +12,23 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// Ensure data directory exists
+// Data directory path
 const dataDir = path.join(process.cwd(), 'server/data');
-try {
-  await fs.access(dataDir);
-} catch {
-  await fs.mkdir(dataDir, { recursive: true });
+
+// Initialize server function
+async function initializeServer() {
+  try {
+    // Ensure data directory exists
+    try {
+      await fs.access(dataDir);
+    } catch {
+      await fs.mkdir(dataDir, { recursive: true });
+    }
+    
+    console.log('Data directory initialized');
+  } catch (error) {
+    console.error('Failed to initialize data directory:', error);
+  }
 }
 
 // Helper function to read JSON file
@@ -34,16 +46,31 @@ async function writeJSONFile(filename, data) {
   await fs.writeFile(path.join(dataDir, filename), JSON.stringify(data, null, 2));
 }
 
+// Get or create users file
+async function getUsersData() {
+  let users = await readJSONFile('users.json');
+  if (!users) {
+    users = [];
+    await writeJSONFile('users.json', users);
+  }
+  return users;
+}
+
+// Helper function to write users data
+async function writeUsersData(users) {
+  await writeJSONFile('users.json', users);
+}
+
 // Helper function to get all todo lists for a specific user
 async function getAllTodoLists(userId) {
   try {
     const files = await fs.readdir(dataDir);
-    const todoFiles = files.filter(file => file.endsWith('.json') && file !== 'index.json');
+    const todoFiles = files.filter(file => file.endsWith('.json') && file !== 'users.json');
     const todoLists = [];
     
     for (const file of todoFiles) {
       const todoList = await readJSONFile(file);
-      if (todoList && todoList.createdBy === userId) { // Filter by creator
+      if (todoList && todoList.createdBy === userId) {
         todoLists.push({
           id: todoList.id,
           title: todoList.title,
@@ -62,38 +89,178 @@ async function getAllTodoLists(userId) {
   }
 }
 
-// Routes
+// Helper function to get shared todo lists for a user
+async function getSharedTodoLists(userId) {
+  try {
+    const files = await fs.readdir(dataDir);
+    const todoFiles = files.filter(file => file.endsWith('.json') && file !== 'users.json');
+    const sharedLists = [];
+    
+    for (const file of todoFiles) {
+      const todoList = await readJSONFile(file);
+      if (todoList && todoList.createdBy !== userId) {
+        // Check if user is a member of this list
+        const isMember = todoList.users && todoList.users.some(user => user.userId === userId);
+        if (isMember) {
+          sharedLists.push({
+            id: todoList.id,
+            title: todoList.title,
+            createdAt: todoList.createdAt,
+            updatedAt: todoList.updatedAt,
+            taskCount: todoList.tasks ? todoList.tasks.length : 0,
+            userCount: todoList.users ? todoList.users.length : 0,
+            createdBy: todoList.createdBy,
+            createdByUsername: todoList.createdByUsername
+          });
+        }
+      }
+    }
+    
+    return sharedLists.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  } catch (error) {
+    return [];
+  }
+}
 
-// Get all todo lists for a specific user
-app.get('/api/todos', async (req, res) => {
+// Authentication Routes
+
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    if (username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters long' });
+    }
+    
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    const users = await getUsersData();
+    
+    // Check if user already exists
+    const existingUser = users.find(user => user.username.toLowerCase() === username.toLowerCase());
+    if (existingUser) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create new user
+    const newUser = {
+      id: uuidv4(),
+      username: username.toLowerCase(),
+      password: hashedPassword,
+      createdAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    await writeJSONFile('users.json', users);
+    
+    // Return user info without password
+    res.json({
+      id: newUser.id,
+      username: newUser.username,
+      createdAt: newUser.createdAt
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Server error during registration' });
+  }
+});
+
+// Login user
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    const users = await getUsersData();
+    
+    // Find user
+    const user = users.find(user => user.username.toLowerCase() === username.toLowerCase());
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    // Return user info without password
+    res.json({
+      id: user.id,
+      username: user.username,
+      createdAt: user.createdAt
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// Middleware to authenticate user
+async function authenticateUser(req, res, next) {
   try {
     const userId = req.headers['x-user-id'];
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const users = await getUsersData();
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid user authentication' });
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(500).json({ error: 'Authentication error' });
+  }
+}
 
-    let todoLists;
-    if (!userId || userId === 'undefined' || userId === 'null') {
-      todoLists = await getPublicTodoLists(); // Returns public todos
-    } else {
-      todoLists = await getAllTodoLists(userId);
+// Todo Routes (updated to use authentication)
+
+// Get all todo lists for authenticated user - FIXED: Single route definition
+app.get('/api/todos', authenticateUser, async (req, res) => {
+  try {
+    let createdLists = [];
+    let sharedLists = [];
+
+    // Only get lists for authenticated users
+    if (req.user && req.user.id) {
+      createdLists = await getAllTodoLists(req.user.id);
+      sharedLists = await getSharedTodoLists(req.user.id);
     }
 
-    res.json(todoLists);
+    res.json({
+      created: createdLists,
+      shared: sharedLists
+    });
   } catch (error) {
+    console.error('Error getting todo lists:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-
-
 // Create new todo list
-app.post('/api/todos', async (req, res) => {
+app.post('/api/todos', authenticateUser, async (req, res) => {
   try {
     const { title } = req.body;
-    const userId = req.headers['x-user-id'];
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
-    }
-    
     const todoId = uuidv4();
     
     const newTodoList = {
@@ -101,7 +268,8 @@ app.post('/api/todos', async (req, res) => {
       title: title || 'New Todo List',
       tasks: [],
       users: [],
-      createdBy: userId, // Store who created this list
+      createdBy: req.user.id,
+      createdByUsername: req.user.username,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -113,8 +281,7 @@ app.post('/api/todos', async (req, res) => {
   }
 });
 
-// Get specific todo list (allow public access if no user ID provided)
-// Get specific todo list (allow public access if no user ID provided)
+// Get specific todo list (allow public access for sharing)
 app.get('/api/todos/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -125,24 +292,26 @@ app.get('/api/todos/:id', async (req, res) => {
       return res.status(404).json({ error: 'Todo list not found' });
     }
     
-    // FIXED: Allow public access when no user ID is provided
-    // This should always return the todo list for public sharing
-    if (!userId || userId === 'undefined' || userId === 'null') {
+    // Allow public access for sharing
+    if (!userId) {
       return res.json(todoList);
     }
     
-    // If user ID is provided, verify they have access
-    const isCreator = todoList.createdBy === userId;
-    const isMember = todoList.users.some(user => user.userId === userId);
+    // If user is authenticated, verify they have access
+    const users = await getUsersData();
+    const user = users.find(u => u.id === userId);
     
-    // Allow access if user is creator or member
-    if (isCreator || isMember) {
-      return res.json(todoList);
+    if (user) {
+      const isCreator = todoList.createdBy === userId;
+      const isMember = todoList.users.some(u => u.userId === userId);
+      
+      if (isCreator || isMember) {
+        return res.json(todoList);
+      }
     }
     
-    // If user has ID but isn't creator/member, still allow public read access
-    // This ensures shared links work even if the user has a stored ID
-    return res.json(todoList);
+    // Allow public read access for sharing
+    res.json(todoList);
     
   } catch (error) {
     console.error('Error in GET /api/todos/:id:', error);
@@ -151,15 +320,10 @@ app.get('/api/todos/:id', async (req, res) => {
 });
 
 // Update todo list title (only creator can update)
-app.put('/api/todos/:id', async (req, res) => {
+app.put('/api/todos/:id', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
     const { title } = req.body;
-    const userId = req.headers['x-user-id'];
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
-    }
     
     const todoList = await readJSONFile(`${id}.json`);
     if (!todoList) {
@@ -167,7 +331,7 @@ app.put('/api/todos/:id', async (req, res) => {
     }
     
     // Check if user is the creator
-    if (todoList.createdBy !== userId) {
+    if (todoList.createdBy !== req.user.id) {
       return res.status(403).json({ error: 'Only the creator can update the list title' });
     }
     
@@ -182,14 +346,9 @@ app.put('/api/todos/:id', async (req, res) => {
 });
 
 // Delete todo list (only creator can delete)
-app.delete('/api/todos/:id', async (req, res) => {
+app.delete('/api/todos/:id', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.headers['x-user-id'];
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
-    }
     
     const todoList = await readJSONFile(`${id}.json`);
     if (!todoList) {
@@ -197,7 +356,7 @@ app.delete('/api/todos/:id', async (req, res) => {
     }
     
     // Check if user is the creator
-    if (todoList.createdBy !== userId) {
+    if (todoList.createdBy !== req.user.id) {
       return res.status(403).json({ error: 'Only the creator can delete the list' });
     }
     
@@ -208,16 +367,18 @@ app.delete('/api/todos/:id', async (req, res) => {
   }
 });
 
-// Add user to todo list - FIXED for public access
+// Add user to todo list
 app.post('/api/todos/:id/users', async (req, res) => {
   try {
     const { id } = req.params;
     const { username } = req.body;
     let userId = req.headers['x-user-id'];
+    let userRecord = null;
 
-    // Generate user ID if not provided (for new users joining via shared link)
-    if (!userId) {
-      userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // If user is authenticated, get their record
+    if (userId) {
+      const users = await getUsersData();
+      userRecord = users.find(u => u.id === userId);
     }
 
     const todoList = await readJSONFile(`${id}.json`);
@@ -225,28 +386,88 @@ app.post('/api/todos/:id/users', async (req, res) => {
       return res.status(404).json({ error: 'Todo list not found' });
     }
 
+    // Generate guest user ID if not authenticated
+    if (!userId) {
+      userId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+
     // Add user if not already a member
     if (!todoList.users.find(user => user.userId === userId)) {
       todoList.users.push({
-        username,
+        username: userRecord ? userRecord.username : username,
         userId,
+        isGuest: !userRecord,
         joinedAt: new Date().toISOString()
       });
       todoList.updatedAt = new Date().toISOString();
       await writeJSONFile(`${id}.json`, todoList);
+
+      // Add the list to user's shared lists if they're authenticated
+      if (userRecord) {
+        const users = await getUsersData();
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+          if (!users[userIndex].sharedLists) {
+            users[userIndex].sharedLists = [];
+          }
+          if (!users[userIndex].sharedLists.includes(id)) {
+            users[userIndex].sharedLists.push(id);
+            await writeUsersData(users);
+          }
+        }
+      }
     }
 
-    // Return the updated todo list along with the generated user ID
     res.json({
       ...todoList,
-      generatedUserId: userId // Include this so frontend can store it
+      generatedUserId: userId
     });
   } catch (error) {
+    console.error('Error adding user to todo list:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+// Get users from todo list
+app.get('/api/todos/:id/users', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.headers['x-user-id'];
+    
+    const todoList = await readJSONFile(`${id}.json`);
+    if (!todoList) {
+      return res.status(404).json({ error: 'Todo list not found' });
+    }
+    
+    // Check if user has access to this todo list
+    const isOwner = todoList.createdBy === userId;
+    const isMember = todoList.users.some(user => user.userId === userId);
+    
+    if (!isOwner && !isMember) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Return users list with sanitized data
+    const users = todoList.users.map(user => ({
+      username: user.username,
+      userId: user.userId,
+      isGuest: user.isGuest,
+      joinedAt: user.joinedAt,
+    }));
+    
+    res.json({
+      todoListId: id,
+      todoListTitle: todoList.title,
+      users: users,
+      totalUsers: users.length
+    });
+    
+  } catch (error) {
+    console.error('Error fetching todo list users:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Add tasks (creator or members can add)
+// Add tasks (authenticated users and members can add)
 app.post('/api/todos/:id/tasks', async (req, res) => {
   try {
     const { id } = req.params;
@@ -254,7 +475,7 @@ app.post('/api/todos/:id/tasks', async (req, res) => {
     const userId = req.headers['x-user-id'];
     
     if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
+      return res.status(401).json({ error: 'Authentication required' });
     }
     
     const todoList = await readJSONFile(`${id}.json`);
@@ -289,15 +510,15 @@ app.post('/api/todos/:id/tasks', async (req, res) => {
   }
 });
 
-// Update task status (creator or members can update)
+// Update task status/text/deadline
 app.put('/api/todos/:id/tasks/:taskId', async (req, res) => {
   try {
     const { id, taskId } = req.params;
-    const { status, username, deadline } = req.body;
+    const { status, username, deadline, text } = req.body;
     const userId = req.headers['x-user-id'];
     
     if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
+      return res.status(401).json({ error: 'Authentication required' });
     }
     
     const todoList = await readJSONFile(`${id}.json`);
@@ -318,8 +539,10 @@ app.put('/api/todos/:id/tasks/:taskId', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
     
+    // Update task properties
     if (status) task.status = status;
     if (deadline !== undefined) task.deadline = deadline;
+    if (text !== undefined) task.text = text.trim();
     if (username) task.lastUpdatedBy = username;
     task.updatedAt = new Date().toISOString();
     
@@ -332,14 +555,14 @@ app.put('/api/todos/:id/tasks/:taskId', async (req, res) => {
   }
 });
 
-// Delete task (creator or members can delete)
+// Delete task
 app.delete('/api/todos/:id/tasks/:taskId', async (req, res) => {
   try {
     const { id, taskId } = req.params;
     const userId = req.headers['x-user-id'];
     
     if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
+      return res.status(401).json({ error: 'Authentication required' });
     }
     
     const todoList = await readJSONFile(`${id}.json`);
@@ -365,6 +588,23 @@ app.delete('/api/todos/:id/tasks/:taskId', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Start server with proper initialization
+async function startServer() {
+  await initializeServer();
+  
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log('Available endpoints:');
+    console.log('  POST /api/auth/register - Register new user');
+    console.log('  POST /api/auth/login - Login user');
+    console.log('  GET /api/todos - Get user\'s todo lists');
+    console.log('  POST /api/todos - Create new todo list');
+    console.log('  GET /api/todos/:id - Get specific todo list');
+  });
+}
+
+// Start the server
+startServer().catch(error => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });

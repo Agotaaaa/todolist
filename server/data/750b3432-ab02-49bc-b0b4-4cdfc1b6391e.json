@@ -9,15 +9,34 @@
       "createdBy": "adnane",
       "createdAt": "2025-06-11T11:28:17.949Z",
       "updatedAt": "2025-06-11T11:28:17.949Z"
+    },
+    {
+      "id": "694a841f-348c-4eb1-9804-80370f9e7738",
+      "text": "this task from brave",
+      "status": "new",
+      "createdBy": "from brave",
+      "createdAt": "2025-06-12T08:52:36.818Z",
+      "updatedAt": "2025-06-12T09:35:52.059Z",
+      "lastUpdatedBy": "adnane"
     }
   ],
   "users": [
     {
       "username": "adnane",
       "joinedAt": "2025-06-11T11:23:07.814Z"
+    },
+    {
+      "username": "adnane",
+      "userId": "user-1749640780939-bfwi41o58",
+      "joinedAt": "2025-06-12T08:52:10.172Z"
+    },
+    {
+      "username": "from brave",
+      "userId": "user-1749641256778-0bzoqo3l9",
+      "joinedAt": "2025-06-12T08:52:24.309Z"
     }
   ],
   "createdBy": "user-1749640780939-bfwi41o58",
   "createdAt": "2025-06-11T11:23:02.868Z",
-  "updatedAt": "2025-06-11T11:43:55.654Z"
+  "updatedAt": "2025-06-12T09:35:52.059Z"
 }
