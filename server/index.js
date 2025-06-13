@@ -556,31 +556,33 @@ app.put('/api/todos/:id/tasks/:taskId', async (req, res) => {
 });
 
 // Delete task
+
+
+// Your existing routes and logic
 app.delete('/api/todos/:id/tasks/:taskId', async (req, res) => {
   try {
     const { id, taskId } = req.params;
     const userId = req.headers['x-user-id'];
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    
+
     const todoList = await readJSONFile(`${id}.json`);
     if (!todoList) {
       return res.status(404).json({ error: 'Todo list not found' });
     }
-    
-    // Check if user is creator or member
+
     const isCreator = todoList.createdBy === userId;
     const isMember = todoList.users.some(user => user.userId === userId);
-    
+
     if (!isCreator && !isMember) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    
+
     todoList.tasks = todoList.tasks.filter(t => t.id !== taskId);
     todoList.updatedAt = new Date().toISOString();
-    
+
     await writeJSONFile(`${id}.json`, todoList);
     res.json(todoList);
   } catch (error) {
@@ -588,10 +590,18 @@ app.delete('/api/todos/:id/tasks/:taskId', async (req, res) => {
   }
 });
 
-// Start server with proper initialization
+// Serve Vite static files (after all API routes)
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Handle client-side routing (also after all API routes)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Async initialization and server start
 async function startServer() {
   await initializeServer();
-  
+
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log('Available endpoints:');
@@ -603,7 +613,6 @@ async function startServer() {
   });
 }
 
-// Start the server
 startServer().catch(error => {
   console.error('Failed to start server:', error);
   process.exit(1);

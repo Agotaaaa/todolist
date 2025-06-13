@@ -1,7 +1,16 @@
 {
   "id": "418221c5-9a88-4a25-90f3-0db429dc4529",
   "title": "todo",
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "d951e265-8da7-4d9a-b59e-353886c2551b",
+      "text": "c xfg xfx ffgnfg",
+      "status": "new",
+      "createdBy": "marwan",
+      "createdAt": "2025-06-13T11:55:03.663Z",
+      "updatedAt": "2025-06-13T11:55:03.663Z"
+    }
+  ],
   "users": [
     {
       "username": "marwan",
@@ -13,5 +22,5 @@
   "createdBy": "335fee71-a441-45f2-b625-ac6484237651",
   "createdByUsername": "marwan",
   "createdAt": "2025-06-13T11:06:31.911Z",
-  "updatedAt": "2025-06-13T11:06:38.589Z"
+  "updatedAt": "2025-06-13T11:55:03.663Z"
 }
