@@ -612,7 +612,14 @@ async function startServer() {
     console.log('  GET /api/todos/:id - Get specific todo list');
   });
 }
+app.use(express.static(path.join(__dirname, '../dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
 
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
 startServer().catch(error => {
   console.error('Failed to start server:', error);
   process.exit(1);
